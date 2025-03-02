@@ -36,7 +36,7 @@ mujoco.mjv_defaultFreeCamera(model, camera)
 camera.distance = 2
 
 #----------------------------
-# Examining Force Dynamics
+# Examining Force Dynamics (by adjusting height of robot figure)
 #----------------------------
 height_offsets = np.linspace(-0.001, 0.001, 2001)
 
@@ -53,7 +53,9 @@ for offset in height_offsets:
 idx = np.argmin(np.abs(vertical_forces))
 best_offset = height_offsets[idx]
 
-# Plot the relationship.
+"""
+# Plot the relationship between height & force
+
 plt.figure(figsize=(10, 6))
 plt.plot(height_offsets * 1000, vertical_forces, linewidth=3)
 # Red vertical line at offset corresponding to smallest vertical force.
@@ -69,6 +71,7 @@ plt.minorticks_on()
 plt.title(f'Smallest vertical force '
           f'found at offset {best_offset*1000:.4f}mm.')
 plt.show()
+"""
 
 mujoco.mj_forward(model, data)
 data.qacc = 0
@@ -79,7 +82,7 @@ qfrc0 = data.qfrc_inverse.copy()
 print('desired forces:', qfrc0)
 
 #----------------
-# Attempt a feedforward control law
+# An old feedforward control law
 #----------------
 
 actuator_moment = np.zeros((model.nu, model.nv))
@@ -93,26 +96,6 @@ mujoco.mju_sparse2dense(
 ctrl0 = np.atleast_2d(qfrc0) @ np.linalg.pinv(actuator_moment) # apply at setpoint using inverse dynamics!
 ctrl0 = ctrl0.flatten()  # Save the ctrl setpoint.
 print('control setpoint:', ctrl0)
-
-data.ctrl = ctrl0
-mujoco.mj_forward(model, data)
-print('actuator forces:', data.qfrc_actuator)
-
-frames = []
-while data.time < DURATION:
-    # Step the simulation.
-    mujoco.mj_step(model, data)
-
-    # Render and save frames.
-    if len(frames) < data.time * FRAMERATE:
-        # Set the lookat point to the humanoid's center of mass.
-        camera.lookat = data.body('torso').subtree_com
-        renderer.update_scene(data, camera)
-        pixels = renderer.render()
-        frames.append(pixels)
-
-"""Result: doesn't work in long term...weight pushes down"""
-imageio.mimsave("feedforward-ctrl.mp4", frames, fps=FRAMERATE)
 
 #------------------------
 # Using Linear Quadratic Regulator
@@ -160,7 +143,7 @@ balance_dofs = abdomen_dofs + left_leg_dofs
 other_dofs = np.setdiff1d(body_dofs, balance_dofs)
 
 # Cost coefficients.
-BALANCE_COST        = 1000  # Balancing.
+BALANCE_COST        = 900  # Balancing.
 BALANCE_JOINT_COST  = 3     # Joints required for balancing.
 OTHER_JOINT_COST    = .3    # Other joints.
 
@@ -175,7 +158,7 @@ Qpos = BALANCE_COST * Qbalance + Qjoint
 
 # No explicit penalty for velocities.
 Q = np.block([[Qpos, np.zeros((nv, nv))],
-              [np.zeros((nv, 2*nv))]])
+            [np.zeros((nv, 2*nv))]])
 
 ##########################
 # Computing the K Matrix #
@@ -188,7 +171,7 @@ data.qpos = qpos0
 # Allocate the A and B matrices, compute them.
 A = np.zeros((2*nv, 2*nv))
 B = np.zeros((2*nv, nu))
-epsilon = 1e-6
+epsilon = 1e-5
 flg_centered = True
 mujoco.mjd_transitionFD(model, data, epsilon, flg_centered, A, B, None, None)
 
@@ -209,20 +192,21 @@ dq = np.zeros(model.nv)
 
 frames = []
 while data.time < DURATION:
-  # Get state difference dx.
-  mujoco.mj_differentiatePos(model, dq, 1, qpos0, data.qpos)
-  dx = np.hstack((dq, data.qvel)).T
+    # Get state difference dx.
+    mujoco.mj_differentiatePos(model, dq, 1, qpos0, data.qpos)
+    dx = np.hstack((dq, data.qvel)).T
 
-  # LQR control law.
-  data.ctrl = ctrl0 - K @ dx
+    # LQR control law.
+    data.ctrl = ctrl0 - K @ dx
 
-  # Step the simulation.
-  mujoco.mj_step(model, data)
+    # Step the simulation.
+    mujoco.mj_step(model, data)
 
-  # Render and save frames.
-  if len(frames) < data.time * FRAMERATE:
-    renderer.update_scene(data)
-    pixels = renderer.render()
-    frames.append(pixels)
+    # Render and save frames.
+    if len(frames) < data.time * FRAMERATE:
+        renderer.update_scene(data)
+        pixels = renderer.render()
+        frames.append(pixels)
 
+print('Saving LQR Balancer')
 imageio.mimsave("lqr-standup.mp4", frames, fps=FRAMERATE)
