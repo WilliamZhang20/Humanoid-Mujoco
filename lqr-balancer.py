@@ -53,26 +53,7 @@ for offset in height_offsets:
 idx = np.argmin(np.abs(vertical_forces))
 best_offset = height_offsets[idx]
 
-"""
-# Plot the relationship between height & force
-
-plt.figure(figsize=(10, 6))
-plt.plot(height_offsets * 1000, vertical_forces, linewidth=3)
-# Red vertical line at offset corresponding to smallest vertical force.
-plt.axvline(x=best_offset*1000, color='red', linestyle='--')
-# Green horizontal line at the humanoid's weight.
-weight = model.body_subtreemass[1]*np.linalg.norm(model.opt.gravity)
-plt.axhline(y=weight, color='green', linestyle='--')
-plt.xlabel('Height offset (mm)')
-plt.ylabel('Vertical force (N)')
-plt.grid(which='major', color='#DDDDDD', linewidth=0.8)
-plt.grid(which='minor', color='#EEEEEE', linestyle=':', linewidth=0.5)
-plt.minorticks_on()
-plt.title(f'Smallest vertical force '
-          f'found at offset {best_offset*1000:.4f}mm.')
-plt.show()
-"""
-
+mujoco.mj_resetDataKeyframe(model, data, 1)
 mujoco.mj_forward(model, data)
 data.qacc = 0
 data.qpos[2] += best_offset
@@ -143,7 +124,7 @@ balance_dofs = abdomen_dofs + left_leg_dofs
 other_dofs = np.setdiff1d(body_dofs, balance_dofs)
 
 # Cost coefficients.
-BALANCE_COST        = 900  # Balancing.
+BALANCE_COST        = 10000  # Balancing.
 BALANCE_JOINT_COST  = 3     # Joints required for balancing.
 OTHER_JOINT_COST    = .3    # Other joints.
 
