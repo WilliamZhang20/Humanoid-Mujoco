@@ -53,7 +53,10 @@ for offset in height_offsets:
 idx = np.argmin(np.abs(vertical_forces))
 best_offset = height_offsets[idx]
 
-mujoco.mj_resetDataKeyframe(model, data, 1)
+# Reset it to the balance on left foot position
+# This reestablished the original position for discovering the setpoint after the above force dynamics exploration
+mujoco.mj_resetDataKeyframe(model, data, 1) # THE LINE THAT MADE IT WORK! :O
+
 mujoco.mj_forward(model, data)
 data.qacc = 0
 data.qpos[2] += best_offset
