@@ -2,6 +2,9 @@
 
 Experimenting with controllers on a humanoid figure in the [Mujoco](https://github.com/google-deepmind/mujoco) simulation environment.
 
-A demo of how bad the current Linear Quadratic Regulator is going:
+The specifications on joints and parts of the model were imported directly from DeepMind's repository to put the focus on control laws.
 
-https://github.com/user-attachments/assets/32dd5738-d276-4e3b-9070-2b7fe0edfa53
+So far, I have successfully set up a Linear Quadratic Regulator controller for the humanoid to balance on its left foot. This control strategy minimizes a quadratic cost function by computing a linear feedback gain matrix. [More info](https://www.youtube.com/watch?v=E_RDCFOlJx4) from Brian Douglas.
+
+A demonstration:
+https://github.com/user-attachments/assets/26d9ca69-8f12-499a-814d-7effc0f0bc5f
